@@ -20,6 +20,9 @@ day's `Cargo.toml` the following line:
 utility-2022 = { path = "../utility-2022" }
 ```
 
+Additionally, you should create a `.env` file based on the `./.env.example`
+given, to have some functionalities available fromn the utilities
+
 This will let you have access to the utility functions.
 
 [rust_website]:https://www.rust-lang.org/
