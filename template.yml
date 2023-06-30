@@ -1,0 +1,14 @@
+rust:
+  init_commands:
+    - cargo init --vcs none --lib -q
+
+  files:
+    - name: .env.example
+      content: |
+         DEMO=0
+    - name: .env
+      content: |
+         DEMO=1
+    - input.txt
+    - demo-input.txt
+
