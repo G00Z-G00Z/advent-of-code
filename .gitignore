@@ -5,3 +5,4 @@
 2022/.env
 
 src/**/.env
+src/*/rust/*/target
