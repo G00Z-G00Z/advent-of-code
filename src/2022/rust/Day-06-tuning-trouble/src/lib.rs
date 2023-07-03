@@ -7,10 +7,10 @@ pub fn detect_sub_routine(signal: &str, diff_char_count: usize) -> Option<u32> {
         .collect::<Vec<_>>()
         .windows(diff_char_count)
     {
-        let place = window[3].0 + 1;
-        let (a, b, c, d) = (window[0].1, window[1].1, window[2].1, window[3].1);
-        let set = HashSet::from([a, b, c, d]);
-        if set.len() == 4 {
+        let place = window[diff_char_count - 1].0 + 1;
+        let chars: HashSet<char> = window.iter().map(|x| x.1).collect();
+
+        if chars.len() == diff_char_count {
             return Some(place as u32);
         }
     }
@@ -105,7 +105,7 @@ mod tests {
             let result =
                 detect_sub_routine(&input, 14).expect("Test case with input must return a number");
 
-            println!("Result pt1: {}", result);
+            println!("Result pt2: {}", result);
         }
     }
 }
