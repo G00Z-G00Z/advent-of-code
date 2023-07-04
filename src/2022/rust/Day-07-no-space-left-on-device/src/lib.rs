@@ -1,11 +1,11 @@
 /// File representation
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct File {
     pub size: u64,
 }
 
 /// Folder representation
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Folder {
     name: String,
     children: Vec<Folder>,
@@ -34,7 +34,7 @@ impl Folder {
 }
 
 /// File system representation
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct FileSystem {
     root: Folder,
 }
@@ -118,7 +118,13 @@ mod tests {
         };
 
         let demo_input_file_system: String = get_input();
+        let demo_input_file_system: FileSystem =
+            create_file_system_from_cmd(&demo_input_file_system);
 
-        println!("{}", demo_input_file_system)
+        assert_eq!(
+            demo_input_file_system.root.size(),
+            expected_filesystem.root.size(),
+            "Size calculation do not match"
+        );
     }
 }
