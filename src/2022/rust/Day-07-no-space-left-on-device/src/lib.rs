@@ -47,6 +47,27 @@ impl Folder {
     pub fn add_folder(&mut self, folder: NodeHanlder<Folder>) {
         self.children.push(Rc::clone(&folder));
     }
+
+    pub fn print(&self) {
+        println!("dir {} (dir)", self.name);
+
+        if self.children.is_empty() && self.files.is_empty() {
+            println!("empty");
+        }
+
+        if self.parent.is_some() {
+            println!("parent: {}", self.parent.as_ref().unwrap().borrow().name);
+        }
+
+        for child in &self.children {
+            let folder = child.borrow();
+            folder.print();
+        }
+
+        for file in &self.files {
+            println!("{} (file, size={})", file.name, file.size);
+        }
+    }
 }
 
 /// Representation of a command
@@ -67,11 +88,29 @@ enum ParseResult {
 
 /// File system representation
 #[derive(Debug)]
-struct FileSystem {
+pub struct FileSystem {
     root: NodeHanlder<Folder>,
 }
 
-pub fn create_file_system_from_cmd<'a>(input: &str) -> NodeHanlder<Folder> {
+pub fn find_sum_at_most(size: u64, folder: &NodeHanlder<Folder>) -> u64 {
+    let mut sum = 0;
+
+    // Check size of current folder
+
+    let f_size = folder.borrow().size();
+
+    if f_size <= size {
+        sum += f_size;
+    }
+
+    // Check for repeated folders
+    for child in &folder.borrow().children {
+        sum += find_sum_at_most(size, child);
+    }
+    sum
+}
+
+pub fn create_file_system_from_cmd<'a>(input: &str) -> FileSystem {
     let root: NodeHanlder<Folder> = Folder::new_rc("/".into(), None);
 
     let mut current_folder = Rc::clone(&root);
@@ -122,7 +161,7 @@ pub fn create_file_system_from_cmd<'a>(input: &str) -> NodeHanlder<Folder> {
         }
     }
 
-    root
+    FileSystem { root }
 }
 fn parse_input(input: &str) -> Vec<ParseResult> {
     let mut results = vec![];
@@ -206,19 +245,31 @@ mod tests {
 
         let demo_input_file_system: String = get_input();
 
-        let root = RefCell::new(Box::new(Folder {
-            name: String::from("/"),
-            children: vec![],
-            files: vec![],
-            parent: None,
-        }));
-
-        let root = create_file_system_from_cmd(&demo_input_file_system);
+        let filesystem = create_file_system_from_cmd(&demo_input_file_system);
 
         assert_eq!(
-            root.borrow().size(),
+            filesystem.root.borrow().size(),
             expected_size,
             "Size calculation do not match"
         );
+
+        let sum = find_sum_at_most(100000, &filesystem.root);
+
+        assert_eq!(sum, 95437, "Sum calculation do not match");
+    }
+
+    #[test]
+    fn test_create_sum() {
+        if is_demo_mode() {
+            return;
+        }
+
+        let input_file_system: String = get_input();
+
+        let filesystem = create_file_system_from_cmd(&input_file_system);
+
+        let sum = find_sum_at_most(100000, &filesystem.root);
+
+        println!("For part1: {}", sum)
     }
 }
