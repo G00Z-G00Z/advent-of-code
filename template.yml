@@ -11,4 +11,19 @@ rust:
          DEMO_MODE=1
     - input.txt
     - demo-input.txt
+    - name: src/lib.rs
+      content: |
+        #[cfg(test)]
+        mod tests {
+            use utility_2022::{get_input, is_demo_mode};
+
+            use super::*;
+
+            pub mod part1 {
+            }
+
+            pub mod part2 {
+            }
+        }
+
 

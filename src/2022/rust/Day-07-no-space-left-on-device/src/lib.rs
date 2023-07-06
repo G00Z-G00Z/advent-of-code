@@ -24,7 +24,7 @@ impl Folder {
             name,
             children: vec![],
             files: vec![],
-            parent: parent,
+            parent,
         }))
     }
 
@@ -47,27 +47,6 @@ impl Folder {
     pub fn add_folder(&mut self, folder: NodeHanlder<Folder>) {
         self.children.push(Rc::clone(&folder));
     }
-
-    pub fn print(&self) {
-        println!("dir {} (dir)", self.name);
-
-        if self.children.is_empty() && self.files.is_empty() {
-            println!("empty");
-        }
-
-        if self.parent.is_some() {
-            println!("parent: {}", self.parent.as_ref().unwrap().borrow().name);
-        }
-
-        for child in &self.children {
-            let folder = child.borrow();
-            folder.print();
-        }
-
-        for file in &self.files {
-            println!("{} (file, size={})", file.name, file.size);
-        }
-    }
 }
 
 /// Representation of a command
@@ -89,7 +68,7 @@ enum ParseResult {
 /// File system representation
 #[derive(Debug)]
 pub struct FileSystem {
-    root: NodeHanlder<Folder>,
+    pub root: NodeHanlder<Folder>,
 }
 
 pub fn find_sum_at_most(size: u64, folder: &NodeHanlder<Folder>) -> u64 {
@@ -110,14 +89,38 @@ pub fn find_sum_at_most(size: u64, folder: &NodeHanlder<Folder>) -> u64 {
     sum
 }
 
+/// Finds the directories that can be deleted to free up the desired size
+/// Returns the smallest size that can be freed (if any)
+pub fn find_smallest_to_free(min_required_size: u64, folder: &NodeHanlder<Folder>) -> Option<u64> {
+    let size = folder.borrow().size();
+
+    // If folder size is less than the required size, return None
+    if size < min_required_size {
+        return None;
+    }
+
+    // Set default min_size
+    let min_size = size;
+
+    let min_child = folder
+        .borrow()
+        .children
+        .iter()
+        .filter_map(|c| find_smallest_to_free(min_required_size, c))
+        .min();
+
+    if min_child.is_some() {
+        return min_child;
+    }
+    return Some(min_size);
+}
+
 pub fn create_file_system_from_cmd<'a>(input: &str) -> FileSystem {
     let root: NodeHanlder<Folder> = Folder::new_rc("/".into(), None);
 
     let mut current_folder = Rc::clone(&root);
 
     let input = parse_input(&input);
-
-    let mut c = 0;
 
     for entry in input {
         match entry {
@@ -235,41 +238,91 @@ mod tests {
     //     - d.ext (file, size=5626152)
     //     - k (file, size=7214296)
 
-    #[test]
-    fn test_create_demo_filesystem() {
-        if !is_demo_mode() {
-            return;
+    pub mod part1 {
+        use super::*;
+
+        #[test]
+        fn test_create_demo_filesystem() {
+            if !is_demo_mode() {
+                return;
+            }
+
+            let expected_size = 48381165;
+
+            let demo_input_file_system: String = get_input();
+
+            let filesystem = create_file_system_from_cmd(&demo_input_file_system);
+
+            assert_eq!(
+                filesystem.root.borrow().size(),
+                expected_size,
+                "Size calculation do not match"
+            );
+
+            let sum = find_sum_at_most(100000, &filesystem.root);
+
+            assert_eq!(sum, 95437, "Sum calculation do not match");
         }
 
-        let expected_size = 48381165;
+        #[test]
+        fn test_create_() {
+            if is_demo_mode() {
+                return;
+            }
 
-        let demo_input_file_system: String = get_input();
+            let input_file_system: String = get_input();
 
-        let filesystem = create_file_system_from_cmd(&demo_input_file_system);
+            let filesystem = create_file_system_from_cmd(&input_file_system);
 
-        assert_eq!(
-            filesystem.root.borrow().size(),
-            expected_size,
-            "Size calculation do not match"
-        );
+            let sum = find_sum_at_most(100000, &filesystem.root);
 
-        let sum = find_sum_at_most(100000, &filesystem.root);
-
-        assert_eq!(sum, 95437, "Sum calculation do not match");
+            println!("For part1: {}", sum)
+        }
     }
 
-    #[test]
-    fn test_create_sum() {
-        if is_demo_mode() {
-            return;
+    pub mod part2 {
+        use super::*;
+
+        const TOTAL_SPACE_DRIVE: u64 = 70_000_000;
+        const MIN_FREE_SPACE: u64 = 30_000_000;
+
+        #[test]
+        fn test_create_sum_demo() {
+            if !is_demo_mode() {
+                return;
+            }
+
+            let input_file_system: String = get_input();
+
+            let filesystem = create_file_system_from_cmd(&input_file_system);
+            let total_mem = filesystem.root.borrow().size();
+            let free_total = TOTAL_SPACE_DRIVE - total_mem;
+            let need_to_delete = MIN_FREE_SPACE - free_total;
+
+            let smallest_space = find_smallest_to_free(need_to_delete, &filesystem.root).unwrap();
+
+            assert_eq!(
+                smallest_space, 24933642,
+                "Smallest space calculation do not match"
+            );
         }
 
-        let input_file_system: String = get_input();
+        #[test]
+        fn test_part_2() {
+            if is_demo_mode() {
+                return;
+            }
 
-        let filesystem = create_file_system_from_cmd(&input_file_system);
+            let input_file_system: String = get_input();
 
-        let sum = find_sum_at_most(100000, &filesystem.root);
+            let filesystem = create_file_system_from_cmd(&input_file_system);
+            let total_mem = filesystem.root.borrow().size();
+            let free_total = TOTAL_SPACE_DRIVE - total_mem;
+            let need_to_delete = MIN_FREE_SPACE - free_total;
 
-        println!("For part1: {}", sum)
+            let smallest_space = find_smallest_to_free(need_to_delete, &filesystem.root).unwrap();
+
+            println!("For part2: {}", smallest_space)
+        }
     }
 }
