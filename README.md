@@ -7,6 +7,7 @@ code][advent_code_website] for this amaizing problems!
 | Year                     | Language(s) | Completed |
 | ----                     | ----        | --------- |
 | [2022](./2022/README.md) | Rust        | No        |
+| [2023](./2022/README.md) | Rust,C,Python        | No        |
 
 [advent_code_website]:https://adventofcode.com/
 
