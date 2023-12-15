@@ -73,4 +73,9 @@ rust:
             }
         }
 
+c:
+  files:
+    - input.txt
+    - demo-input.txt
+    - main.c
 
