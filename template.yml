@@ -77,5 +77,21 @@ c:
   files:
     - input.txt
     - demo-input.txt
-    - main.c
+    - name: main.c
+      content: |
+        #include <stdio.h>
+
+        int main() {
+          // Hello world
+          printf("Hello world!\n");
+          return 0;
+        }
+
+    - name: run-build.sh
+      content: |
+        #!/bin/bash
+
+        gcc -o main main.c 
+        ./main
+
 
