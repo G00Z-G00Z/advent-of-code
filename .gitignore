@@ -6,3 +6,5 @@
 
 src/**/.env
 src/*/rust/*/target
+
+src/2023/c/*/main
