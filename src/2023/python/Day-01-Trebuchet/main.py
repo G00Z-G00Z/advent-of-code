@@ -1,4 +1,5 @@
 import dotenv
+import re
 import os
 from pathlib import Path
 
@@ -6,6 +7,8 @@ dotenv.load_dotenv()
 
 is_debug = True if os.environ.get("DEMO_APP", "1") == "1" else False
 FILE_PATH = Path("./demo-input.txt") if is_debug else Path("./input.txt")
+
+regex = r"one|two|three|four|five|six|seven|eight|nine|[0-9]"
 
 
 def read_file(file_path: str) -> str:
@@ -34,50 +37,21 @@ def sol_2(content: str) -> int:
         if not line:
             continue
 
-        # Find indexes for numbers
-        print(line)
+        print(f"Line: {line}")
+        matches = re.findall(regex, line)
+        # First match
+        first_digit = str(matches[0])
 
-        indexes = {name: line.find(name) for name in number_names}
+        # Second match
+        second_digit = str(matches[-1])
+        print(f"First digit: {first_digit}")
+        print(f"Second digit: {second_digit}")
 
-        list_of_indexes = [
-            (name, index, numer_values.get(name))
-            for name, index in indexes.items()
-            if index != -1
-        ]
-
-        # Find number from the left
-        first_idx = -1
-        value = -1
-        for idx, char in enumerate(line):
-            if char.isdigit():
-                first_idx = idx
-                value = int(char)
-                break
-
-        # Add indexes to list
-        if first_idx != -1:
-            list_of_indexes.append(("first", first_idx, value))
-
-        # Find number from the right
-        last_idx = -1
-        value = -1
-        for idx, char in enumerate(line[::-1]):
-            if char.isdigit():
-                last_idx = len(line) - idx - 1
-                value = int(char)
-                break
-
-        if last_idx != -1:
-            list_of_indexes.append(("last", last_idx, value))
-
-        list_of_indexes.sort(key=lambda x: x[1])
-        print(list_of_indexes)
-
-        # Join the numbers
-        first_no = list_of_indexes[0][2]
-        second_no = list_of_indexes[-1][2]
-        print(f"Found numbers {first_no} and {second_no}")
-        total += first_no * 10 + second_no
+        first_value = numer_values.get(first_digit) or int(first_digit)
+        second_value = numer_values.get(second_digit) or int(second_digit)
+        value = first_value * 10 + second_value
+        print(f"Total: {value}")
+        total += value
 
     return total
 
