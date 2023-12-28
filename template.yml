@@ -16,7 +16,7 @@ rust:
         #[cfg(test)]
         mod tests {
             use utility_2022::{get_input, is_demo_mode};
-            use super::*
+            use super::*;
 
             pub mod part1 {
 
