@@ -13,6 +13,7 @@ rust:
     - demo-input.txt
     - name: src/lib.rs
       content: |
+        #![allow(dead_code, non_snake_case)]
         #[cfg(test)]
         mod tests {
             use utility_2022::{get_input, is_demo_mode};

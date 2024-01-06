@@ -1,3 +1,4 @@
+#![allow(dead_code, non_snake_case)]
 use std::ops::Range;
 
 #[derive(Debug)]
