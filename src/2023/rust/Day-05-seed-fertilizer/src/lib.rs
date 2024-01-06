@@ -3,30 +3,26 @@ use std::ops::Range;
 
 #[derive(Debug)]
 struct RangedMap {
-    input: Range<u64>,
-    output: u64,
+    range: Range<u64>,
+    output_start: u64,
 }
 
 impl RangedMap {
     fn new(input: u64, output: u64, range: u64) -> Self {
         Self {
-            input: input..(input + range),
-            output,
+            range: input..(input + range),
+            output_start: output,
         }
     }
 
     fn map(&self, value: u64) -> u64 {
-        if !self.contains(value) {
-            return value;
-        }
-
-        let value_idx = value - self.input.start;
-        let new_value = self.output + value_idx;
+        let value_idx = value - self.range.start;
+        let new_value = self.output_start + value_idx;
         new_value
     }
 
     fn contains(&self, value: u64) -> bool {
-        self.input.contains(&value)
+        self.range.contains(&value)
     }
 }
 
@@ -61,23 +57,6 @@ impl XToYMap {
 
 type SeedList = Vec<u64>;
 
-fn map_in_chain(seeds: &SeedList, maps: &Vec<XToYMap>) -> SeedList {
-    let mut seeds = seeds.clone();
-    for map in maps {
-        seeds = seeds.iter().map(|seed| map.map(*seed)).collect();
-    }
-
-    seeds
-}
-
-fn parse_seed_part_1(input: &str) -> SeedList {
-    // E.g. : "seeds: 79 14 55 13"
-    input
-        .split(" ")
-        .filter_map(|s| s.parse::<u64>().ok())
-        .collect::<SeedList>()
-}
-
 fn parse_seed_part_2(input: &str) -> SeedList {
     // E.g. : "seeds: 79 14 55 13"
     // Where  "seeds: init1 range1 init2 range2 ..."
@@ -87,7 +66,7 @@ fn parse_seed_part_2(input: &str) -> SeedList {
         .filter_map(|s| s.parse::<u64>().ok())
         .collect::<Vec<u64>>()
         .chunks(2)
-        .flat_map(|pair| pair[0]..(pair[1] + pair[0]))
+        .flat_map(|pair| pair[0]..=(pair[1] + pair[0] - 1))
         .collect::<SeedList>()
 }
 
@@ -119,146 +98,159 @@ fn parse_input_2(input: &str) -> u64 {
             map_ranges.push(RangedMap::new(input, output, range));
         }
 
-        maps.push(XToYMap::new(map_ranges));
+        maps.push(map_ranges);
     }
 
-    seeds
+    let initial_seed_ranges = seeds
         .split(" ")
         .filter_map(|s| s.parse::<u64>().ok())
         .collect::<Vec<u64>>()
         .chunks(2)
-        .map(|pair| (pair[0], (pair[1] + pair[0])))
-        .map(|(begin, end)| end)
-        .min()
-        .expect("No min value found")
-}
+        .map(|pair| pair[0]..(pair[1] + pair[0]))
+        .collect::<Vec<Range<u64>>>();
 
-fn parse_input<T>(input: &str, seed_parser_fn: T) -> (SeedList, Vec<XToYMap>)
-where
-    T: Fn(&str) -> SeedList,
-{
-    let mut maps = Vec::new();
+    println!("Initial seed ranges: {:?}", initial_seed_ranges);
 
-    let mut lines = input.split("\n\n");
+    // Update the seed ranges
+    // Find the limits of the seed range and the map, and only
+    // update the bounds of the ranges
+    let mut new_seed_ranges = initial_seed_ranges.clone();
 
-    // First line is the seed list:
-    // E.g. : "seeds: 79 14 55 13"
-    let seeds = seed_parser_fn(lines.next().unwrap());
-    println!("Parsed Seeds!!");
+    for map in maps.iter() {
+        // Transform just one map
+        let seed_ranges = new_seed_ranges.clone();
+        new_seed_ranges.clear();
 
-    // All other lines are maps of the form:
-    // x-to-y map:
-    // output_1 input_1 range_1
-    // output_2 input_2 range_2
-    // ...
-    for map in lines {
-        let mut lines = map.split("\n");
+        for seed_range in seed_ranges {
+            let mut check_intersections = vec![seed_range];
+            let mut new_intersections = vec![];
 
-        // First line is the map header
-        let _ = lines.next();
+            while !check_intersections.is_empty() {
+                // Get an intersection
+                let intersection = check_intersections.pop().unwrap();
+                let mut mapped = false;
 
-        // All other lines are the map ranges
-        let mut map_ranges = Vec::new();
-        for range in lines {
-            let mut range = range.split(" ");
-            if range.clone().count() != 3 {
-                continue;
+                // This only maps one intersection at the time
+                for submap in map.iter() {
+                    // Check if the intersection is outside  the map
+                    // |  |        -> intersection
+                    //        | |  -> map
+                    //
+                    //        | |  -> intersection
+                    // |  |        -> map
+                    //    |     |  -> map
+                    // |  |        -> intersection
+                    //    |     |  -> intersection
+                    // |  |        -> map
+                    if intersection.start >= submap.range.end
+                        || intersection.end <= submap.range.start
+                    {
+                        continue;
+                    }
+
+                    // Some intersection
+                    mapped = true;
+                    match (
+                        intersection.start >= submap.range.start,
+                        intersection.end <= submap.range.end,
+                    ) {
+                        (true, true) => {
+                            // The map is inside the intersection
+                            //    | |      -> intersection
+                            //  |     |   -> map
+                            //  or
+                            //  |     |    -> intersection
+                            //  |     |   -> map
+                            new_intersections
+                                .push(submap.map(intersection.start)..submap.map(intersection.end));
+                        }
+                        (true, false) => {
+                            // Submap has a division on the right
+                            //    |    |   -> intersection
+                            //  |     |   -> map
+                            //  or
+                            //  |      |   -> intersection
+                            //  |     |   -> map
+
+                            let inside =
+                                submap.map(intersection.start)..submap.map(submap.range.end);
+                            new_intersections.push(inside);
+
+                            let outside = submap.range.end..intersection.end;
+                            check_intersections.push(outside);
+                        }
+                        (false, true) => {
+                            // Intersection has division on the left
+                            // |     |     -> intersection
+                            //  |     |   -> map
+                            //  or
+                            // |      |    -> intersection
+                            //  |     |   -> map
+
+                            let inside =
+                                submap.map(submap.range.start)..submap.map(intersection.end);
+                            new_intersections.push(inside);
+
+                            let outside = intersection.start..submap.range.start;
+                            check_intersections.push(outside);
+                        }
+                        (false, false) => {
+                            // Map is completely inside the intersection
+                            // |       |   -> intersection
+                            //  |     |   -> map
+                            let left = intersection.start..submap.range.start;
+                            let inside =
+                                submap.map(submap.range.start)..submap.map(submap.range.end);
+                            let outside = submap.range.end..intersection.end;
+
+                            check_intersections.push(left);
+                            new_intersections.push(inside);
+                            check_intersections.push(outside);
+                        }
+                    }
+                    break;
+                }
+
+                if !mapped {
+                    new_intersections.push(intersection);
+                }
             }
-            let output = range.next().expect("output").parse::<u64>().unwrap();
-            let input = range.next().expect("input").parse::<u64>().unwrap();
-            let range = range.next().expect("range").parse::<u64>().unwrap();
 
-            map_ranges.push(RangedMap::new(input, output, range));
+            new_seed_ranges.extend(new_intersections);
         }
-
-        maps.push(XToYMap::new(map_ranges));
     }
 
-    (seeds, maps)
+    new_seed_ranges
+        .iter()
+        .map(|range| range.start)
+        .min()
+        .unwrap() as u64
 }
 
-fn get_min_location(seeds: &SeedList, maps: &Vec<XToYMap>) -> u64 {
-    let locations = map_in_chain(seeds, maps);
-    let min_location = locations.iter().min().unwrap().clone();
-    min_location
-}
-
-const correct_locations_part_1: [u64; 4] = [82, 43, 86, 35];
-const correct_min_location_part_1: u64 = 13;
+const CORRECT_LOCATIONS_PART_1: [u64; 4] = [82, 43, 86, 35];
+const CORRECT_MIN_LOCATION_PART_1: u64 = 13;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use utility_2022::{get_input, is_demo_mode};
 
-    // pub mod part1 {
-
-    //     use super::*;
-
-    //     #[test]
-    //     fn test_ranges() {
-    //         let x_to_y_map =
-    //             XToYMap::new(vec![RangedMap::new(50, 98, 2), RangedMap::new(52, 50, 48)]);
-
-    //         let value = 81;
-
-    //         let new_value = x_to_y_map.map(value);
-
-    //         assert_eq!(new_value, 79);
-    //     }
-
-    //     #[test]
-    //     fn test_demo_input() {
-    //         if !is_demo_mode() {
-    //             return;
-    //         }
-
-    //         let input = get_input();
-    //         let (seeds, maps) = parse_input(&input, parse_seed_part_1);
-    //         let locations = map_in_chain(&seeds, &maps);
-    //         assert_eq!(&locations[..], correct_locations_part_1);
-    //         let min_location = locations.iter().min().unwrap().clone();
-    //         assert_eq!(min_location, 35);
-    //     }
-
-    //     #[test]
-    //     fn test_input() {
-    //         if is_demo_mode() {
-    //             return;
-    //         }
-
-    //         let input = get_input();
-    //         let (seeds, maps) = parse_input(&input, parse_seed_part_1);
-    //         let min_location = get_min_location(&seeds, &maps);
-
-    //         println!("Answer pt1: {}", min_location);
-    //     }
-    // }
-
     pub mod part2 {
 
         use super::*;
 
-        // #[test]
-        // fn test_demo_input() {
-        //     if !is_demo_mode() {
-        //         return;
-        //     }
+        #[test]
+        fn test_demo_input() {
+            if !is_demo_mode() {
+                return;
+            }
 
-        //     let input = get_input();
-        //     let (seeds, maps) = parse_input(&input, parse_seed_part_2);
-        //     assert_eq!(seeds.len(), 27);
-        //     // Generates weird outputs
-        //     let lowest_seed = 82;
-        //     let correct_min_location = 46;
-        //     let min_location = get_min_location(&vec![lowest_seed], &maps);
-        //     assert_eq!(min_location, correct_min_location);
+            let input = get_input();
+            let min_location = parse_input_2(&input);
+            println!("Answer pt2: {}", min_location);
 
-        //     let locations = map_in_chain(&seeds, &maps);
-        //     let min_location = locations.iter().min().unwrap().clone();
-
-        //     assert_eq!(min_location, 46);
-        // }
+            assert_eq!(min_location, 46);
+        }
 
         #[test]
         fn test_input() {
