@@ -49,6 +49,7 @@ fn parse_input(input: &str) -> Vec<Race> {
         .collect()
 }
 
+// OJO: Tiene que ser mayor o igual al record
 fn compute_record_range(record_distance: u32, time_limit: u32) -> RangeInclusive<u32> {
     let R: f32 = record_distance as f32;
     let T: f32 = time_limit as f32;
@@ -56,10 +57,38 @@ fn compute_record_range(record_distance: u32, time_limit: u32) -> RangeInclusive
     let a = T / 2.0;
     let b = (-4.0 * R + T.powi(2)).sqrt() / 2.0;
 
-    let h1 = a + b;
-    let h2 = a - b;
+    let h1 = (a - b).ceil();
+    let h2 = (a + b).floor();
 
-    h1.ceil() as u32..=h2.floor() as u32
+    // Check for equal time
+    let compute_distance = |ht: f32| T * ht - ht.powi(2);
+
+    // println!("h1: {}, h2: {}", h1, h2);
+    // println!("d1: {}, d2: {}", compute_distance(h1), compute_distance(h2));
+
+    let h1 = if compute_distance(h1) > R {
+        h1
+    } else {
+        h1 + 1.0
+    } as u32;
+
+    let h2 = if compute_distance(h2) > R {
+        h2
+    } else {
+        h2 - 1.0
+    } as u32;
+
+    h1..=h2
+}
+
+fn part_1(input: &str) -> u32 {
+    let races = parse_input(&input);
+    let possible_scores = races
+        .iter()
+        .map(|race| compute_record_range(race.record_distance, race.time_limit_ms).count() as u32)
+        .collect::<Vec<u32>>();
+
+    possible_scores.iter().fold(1, |acc, x| acc * x)
 }
 
 #[cfg(test)]
@@ -79,8 +108,20 @@ mod tests {
             }
 
             let input = get_input();
+            let ans = part_1(&input);
+            // let races = parse_input(&input);
+            // let possible_scores = races
+            //     .iter()
+            //     .map(|race| compute_record_range(race.record_distance, race.time_limit_ms).count())
+            //     .collect::<Vec<_>>();
 
-            assert_eq!(input, "hey");
+            // // println!("{:?}", possible_scores);
+
+            // for (answer, race) in CORRECT_ANSWERS.iter().zip(possible_scores.iter()) {
+            //     assert_eq!(answer.1, *race as u32, "Races do not match")
+            // }
+
+            assert_eq!(288, ans);
         }
 
         #[test]
@@ -90,35 +131,35 @@ mod tests {
             }
 
             let input = get_input();
-
-            println!("Answer pt1: {}", input);
+            let ans = part_1(&input);
+            println!("Answer pt1: {}", ans);
         }
     }
 
-    pub mod part2 {
+    // pub mod part2 {
 
-        use super::*;
+    //     use super::*;
 
-        #[test]
-        fn test_demo_input() {
-            if !is_demo_mode() {
-                return;
-            }
+    //     #[test]
+    //     fn test_demo_input() {
+    //         if !is_demo_mode() {
+    //             return;
+    //         }
 
-            let input = get_input();
+    //         let input = get_input();
 
-            assert_eq!(input, "hey");
-        }
+    //         assert_eq!(input, "hey");
+    //     }
 
-        #[test]
-        fn test_input() {
-            if is_demo_mode() {
-                return;
-            }
+    //     #[test]
+    //     fn test_input() {
+    //         if is_demo_mode() {
+    //             return;
+    //         }
 
-            let input = get_input();
+    //         let input = get_input();
 
-            println!("Answer pt2: {}", input);
-        }
-    }
+    //         println!("Answer pt2: {}", input);
+    //     }
+    // }
 }
