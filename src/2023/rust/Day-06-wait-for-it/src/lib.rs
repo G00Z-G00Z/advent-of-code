@@ -112,11 +112,16 @@ fn compute_record_range(record_distance: u64, time_limit: u64) -> RangeInclusive
     h1..=h2
 }
 
+fn count_ways(range: RangeInclusive<u64>) -> u64 {
+    *range.end() - *range.start() + 1
+}
+
 fn part_1(input: &str) -> u64 {
     let races = parse_input_1(&input);
     let possible_scores = races
         .iter()
-        .map(|race| compute_record_range(race.record_distance, race.time_limit_ms).count() as u64)
+        .map(|race| compute_record_range(race.record_distance, race.time_limit_ms))
+        .map(|r| count_ways(r))
         .collect::<Vec<u64>>();
 
     possible_scores.iter().fold(1, |acc, x| acc * x)
@@ -126,7 +131,8 @@ fn part_2(input: &str) -> u64 {
     let races = parse_input_2(&input);
     let possible_scores = races
         .iter()
-        .map(|race| compute_record_range(race.record_distance, race.time_limit_ms).count() as u64)
+        .map(|race| compute_record_range(race.record_distance, race.time_limit_ms))
+        .map(|r| count_ways(r))
         .collect::<Vec<u64>>();
 
     possible_scores.iter().fold(1, |acc, x| acc * x)
@@ -137,45 +143,45 @@ mod tests {
     use super::*;
     use utility_2022::{get_input, is_demo_mode};
 
-    // pub mod part1 {
+    pub mod part1 {
 
-    //     const CORRECT_ANSWERS: [(u64, u64); 3] = [(9, 4), (15, 8), (30, 9)];
-    //     use super::*;
+        const CORRECT_ANSWERS: [(u64, u64); 3] = [(9, 4), (15, 8), (30, 9)];
+        use super::*;
 
-    //     #[test]
-    //     fn test_demo_input() {
-    //         if !is_demo_mode() {
-    //             return;
-    //         }
+        #[test]
+        fn test_demo_input() {
+            if !is_demo_mode() {
+                return;
+            }
 
-    //         let input = get_input();
-    //         let ans = part_1(&input);
-    //         // let races = parse_input(&input);
-    //         // let possible_scores = races
-    //         //     .iter()
-    //         //     .map(|race| compute_record_range(race.record_distance, race.time_limit_ms).count())
-    //         //     .collect::<Vec<_>>();
+            let input = get_input();
+            let ans = part_1(&input);
+            // let races = parse_input(&input);
+            // let possible_scores = races
+            //     .iter()
+            //     .map(|race| compute_record_range(race.record_distance, race.time_limit_ms).count())
+            //     .collect::<Vec<_>>();
 
-    //         // // println!("{:?}", possible_scores);
+            // // println!("{:?}", possible_scores);
 
-    //         // for (answer, race) in CORRECT_ANSWERS.iter().zip(possible_scores.iter()) {
-    //         //     assert_eq!(answer.1, *race as u64, "Races do not match")
-    //         // }
+            // for (answer, race) in CORRECT_ANSWERS.iter().zip(possible_scores.iter()) {
+            //     assert_eq!(answer.1, *race as u64, "Races do not match")
+            // }
 
-    //         assert_eq!(288, ans);
-    //     }
+            assert_eq!(288, ans);
+        }
 
-    //     #[test]
-    //     fn test_input() {
-    //         if is_demo_mode() {
-    //             return;
-    //         }
+        #[test]
+        fn test_input() {
+            if is_demo_mode() {
+                return;
+            }
 
-    //         let input = get_input();
-    //         let ans = part_1(&input);
-    //         println!("Answer pt1: {}", ans);
-    //     }
-    // }
+            let input = get_input();
+            let ans = part_1(&input);
+            println!("Answer pt1: {}", ans);
+        }
+    }
 
     pub mod part2 {
 
